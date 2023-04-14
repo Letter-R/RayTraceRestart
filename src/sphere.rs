@@ -1,17 +1,22 @@
-use super::hitable::HitRecord;
-use super::hitable::Hitable;
+use std::sync::Arc;
+
+use crate::material::Material;
+
+use super::hitable::{HitRecord, Hitable};
 use super::ray::Ray;
 use nalgebra::Vector3;
 
 pub struct Sphere {
     center: Vector3<f64>,
     radius: f64,
+    material: Arc<dyn Material>,
 }
 impl Sphere {
-    pub fn new(center: Vector3<f64>, radius: f64) -> Sphere {
+    pub fn new(center: Vector3<f64>, radius: f64, material: impl Material + 'static) -> Sphere {
         Sphere {
             center: center,
             radius: radius,
+            material: Arc::new(material),
         }
     }
 }
@@ -34,6 +39,7 @@ impl Hitable for Sphere {
                     normal,
                     t,
                     r.direction().dot(&normal) < 0.0,
+                    self.material.clone(),
                 ));
             };
             let t = (-b + sqrt_discriminant) / a;
@@ -45,6 +51,7 @@ impl Hitable for Sphere {
                     normal,
                     t,
                     r.direction().dot(&normal) < 0.0,
+                    self.material.clone(),
                 ));
             }
         }

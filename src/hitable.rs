@@ -1,4 +1,8 @@
+use std::sync::Arc;
+
 use nalgebra::Vector3;
+
+use crate::material::Material;
 
 use super::ray::Ray;
 
@@ -7,15 +11,23 @@ pub struct HitRecord {
     normal: Vector3<f64>, //交点法线
     t: f64,
     front_face: bool,
+    material: Arc<dyn Material>,
 }
 
 impl HitRecord {
-    pub fn new(point: Vector3<f64>, normal: Vector3<f64>, t: f64, front_face: bool) -> HitRecord {
+    pub fn new(
+        point: Vector3<f64>,
+        normal: Vector3<f64>,
+        t: f64,
+        front_face: bool,
+        material: Arc<dyn Material>,
+    ) -> HitRecord {
         HitRecord {
             point: point,
             normal: normal,
             t: t,
             front_face: front_face,
+            material: material,
         }
     }
     pub fn normal(&self) -> Vector3<f64> {
@@ -26,6 +38,9 @@ impl HitRecord {
     }
     pub fn t(&self) -> f64 {
         self.t
+    }
+    pub fn material(&self) -> Arc<dyn Material> {
+        self.material.clone()
     }
 }
 

@@ -4,6 +4,8 @@ mod material;
 mod ray;
 mod sphere;
 
+use std::sync::Arc;
+
 use camera::Camera;
 use hitable::{Hitable, HitableList};
 use na::Vector3;
@@ -12,14 +14,17 @@ use rand::Rng;
 use ray::Ray;
 use rayon::prelude::*;
 use sphere::Sphere;
+
+use crate::material::{Dielectric, Lambertian, Metal};
 fn ray_color(r: Ray, world: &HitableList, depth: usize) -> Vector3<f64> {
     if depth <= 0 {
         return Vector3::new(0.0, 0.0, 0.0);
     };
     if let Some(rec) = world.hit(&r, 0.001, f64::MAX) {
-        let target: Vector3<f64> = rec.point() + rec.normal() + material::random_in_unit_sphere();
-        let subray = Ray::new(rec.point(), target - rec.point());
-        return 0.5 * ray_color(subray, world, depth - 1);
+        if let Some((sactter, albedo)) = rec.material().scatter(&r, &rec) {
+            return albedo.component_mul(&ray_color(sactter, world, depth - 1));
+        }
+        Vector3::new(0.0, 0.0, 0.0)
     } else {
         let unit_direction: Vector3<f64> = r.direction().normalize();
         let t = 0.5 * (unit_direction[1] + 1.0);
@@ -34,13 +39,29 @@ fn main() {
     const ASPECT_RATIO: f64 = 16.0 / 9.0;
     const SAMPLES_PER_PIXEL: usize = 50;
     const MAX_DEPTH: usize = 20;
+
     //物体
     let mut world = HitableList::new();
-    let ball1 = Sphere::new(Vector3::new(0.0, 0.0, -1.0), 0.5);
-    let ball2 = Sphere::new(Vector3::new(0.0, -100.5, -1.0), 100.0);
 
-    world.push(ball1);
-    world.push(ball2);
+    let material_ground = Lambertian::new(Vector3::new(0.8, 0.8, 0.0));
+    let material_center = Lambertian::new(Vector3::new(0.1, 0.2, 0.5));
+    let material_left = Dielectric::new(1.5);
+    let material_right = Metal::new(Vector3::new(0.8, 0.6, 0.2), 0.0);
+
+    let sphere_ground = Sphere::new(Vector3::new(0.0, -100.5, -1.0), 100.0, material_ground);
+    let sphere_center = Sphere::new(Vector3::new(0.0, 0.0, -1.0), 0.5, material_center);
+    let sphere_left = Sphere::new(Vector3::new(-1.0, 0.0, -1.0), 0.5, material_left);
+
+    let sphere_right = Sphere::new(Vector3::new(1.0, 0.0, -1.0), 0.5, material_right);
+
+    world.push(sphere_ground);
+    world.push(sphere_center);
+    world.push(sphere_left);
+    world.push(sphere_right);
+
+    let material_left = Dielectric::new(1.5);
+    let sphere_left = Sphere::new(Vector3::new(-1.0, 0.0, -1.0), -0.4, material_left);
+    world.push(sphere_left);
 
     //相机
     let camera = Camera::new();
