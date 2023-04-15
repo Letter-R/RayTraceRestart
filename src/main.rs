@@ -100,11 +100,11 @@ fn ray_color(r: Ray, world: &HitableList, depth: usize) -> Vector3<f64> {
 
 fn main() {
     // 图像参数
-    const IMAGE_WIDTH: usize = 1200;
+    const IMAGE_WIDTH: usize = 500;
     const IMAGE_HEIGHT: usize = ((IMAGE_WIDTH as f64) / ASPECT_RATIO) as usize;
     const ASPECT_RATIO: f64 = 3.0 / 2.0;
-    const SAMPLES_PER_PIXEL: usize = 500;
-    const MAX_DEPTH: usize = 50;
+    const SAMPLES_PER_PIXEL: usize = 50;
+    const MAX_DEPTH: usize = 5;
 
     //物体
     let world = random_scene();
@@ -114,7 +114,7 @@ fn main() {
         Vector3::new(13.0, 2.0, 3.0),
         Vector3::new(0.0, 0.0, 0.0),
         Vector3::new(0.0, 1.0, 0.0),
-        10.0,
+        20.0,
         ASPECT_RATIO,
         0.1,
         10.0,
