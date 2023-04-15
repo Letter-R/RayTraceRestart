@@ -7,10 +7,7 @@ pub struct Ray {
 
 impl Ray {
     pub fn new(origin: Vector3<f64>, direction: Vector3<f64>) -> Ray {
-        Ray {
-            origin: origin,
-            direction: direction,
-        }
+        Ray { origin, direction }
     }
 
     pub fn at(&self, t: f64) -> Vector3<f64> {

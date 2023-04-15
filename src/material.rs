@@ -17,13 +17,13 @@ pub fn random_in_unit_sphere() -> Vector3<f64> {
 
 /// 反射
 fn reflect(v: &Vector3<f64>, n: &Vector3<f64>) -> Vector3<f64> {
-    v - 2.0 * v.dot(&n) * n
+    v - 2.0 * v.dot(n) * n
 }
 
 /// 折射
 fn refract(v: &Vector3<f64>, n: &Vector3<f64>, ni_over_nt: f64) -> Option<Vector3<f64>> {
     let uv = v.normalize();
-    let dt = uv.dot(&n);
+    let dt = uv.dot(n);
     let discriminant = 1.0 - ni_over_nt.powi(2) * (1.0 - dt.powi(2));
     if discriminant > 0.0 {
         // 发生折射
@@ -82,7 +82,7 @@ pub struct Metal {
 impl Metal {
     pub fn new(albedo: Vector3<f64>, fuzz: f64) -> Metal {
         Metal {
-            albedo: albedo,
+            albedo,
             fuzz: fuzz.min(1.0),
         }
     }

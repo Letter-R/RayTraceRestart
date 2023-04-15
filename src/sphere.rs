@@ -14,8 +14,8 @@ pub struct Sphere {
 impl Sphere {
     pub fn new(center: Vector3<f64>, radius: f64, material: impl Material + 'static) -> Sphere {
         Sphere {
-            center: center,
-            radius: radius,
+            center,
+            radius,
             material: Arc::new(material),
         }
     }
@@ -34,25 +34,13 @@ impl Hitable for Sphere {
             if t < t_max && t > t_min {
                 let p = r.at(t);
                 let normal = (p - self.center) / self.radius;
-                return Some(HitRecord::new(
-                    p,
-                    normal,
-                    t,
-                    r.direction().dot(&normal) < 0.0,
-                    self.material.clone(),
-                ));
+                return Some(HitRecord::new(p, normal, t, self.material.clone()));
             };
             let t = (-b + sqrt_discriminant) / a;
             if t < t_max && t > t_min {
                 let p = r.at(t);
                 let normal = (p - self.center) / self.radius;
-                return Some(HitRecord::new(
-                    p,
-                    normal,
-                    t,
-                    r.direction().dot(&normal) < 0.0,
-                    self.material.clone(),
-                ));
+                return Some(HitRecord::new(p, normal, t, self.material.clone()));
             }
         }
         None

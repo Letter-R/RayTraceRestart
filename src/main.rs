@@ -4,8 +4,7 @@ mod material;
 mod ray;
 mod sphere;
 
-use std::sync::Arc;
-
+use crate::material::{Dielectric, Lambertian, Metal};
 use camera::Camera;
 use hitable::{Hitable, HitableList};
 use na::Vector3;
@@ -15,9 +14,76 @@ use ray::Ray;
 use rayon::prelude::*;
 use sphere::Sphere;
 
-use crate::material::{Dielectric, Lambertian, Metal};
+fn random_scene() -> HitableList {
+    let mut rng = rand::thread_rng();
+    let origin = Vector3::new(4.0, 0.2, 0.0);
+    let mut world = HitableList::new();
+    world.push(Sphere::new(
+        Vector3::new(0.0, -1000.0, 0.0),
+        1000.0,
+        Lambertian::new(Vector3::new(0.5, 0.5, 0.5)),
+    ));
+    for a in -11..11 {
+        for b in -11..11 {
+            let choose_material = rng.gen::<f64>();
+            let center = Vector3::new(
+                a as f64 + 0.9 * rng.gen::<f64>(),
+                0.2,
+                b as f64 + 0.9 * rng.gen::<f64>(),
+            );
+            if (center - origin).magnitude() > 0.9 {
+                if choose_material < 0.8 {
+                    // diffuse
+                    world.push(Sphere::new(
+                        center,
+                        0.2,
+                        Lambertian::new(Vector3::new(
+                            rng.gen::<f64>() * rng.gen::<f64>(),
+                            rng.gen::<f64>() * rng.gen::<f64>(),
+                            rng.gen::<f64>() * rng.gen::<f64>(),
+                        )),
+                    ));
+                } else if choose_material < 0.95 {
+                    // metal
+                    world.push(Sphere::new(
+                        center,
+                        0.2,
+                        Metal::new(
+                            Vector3::new(
+                                0.5 * (1.0 + rng.gen::<f64>()),
+                                0.5 * (1.0 + rng.gen::<f64>()),
+                                0.5 * (1.0 + rng.gen::<f64>()),
+                            ),
+                            0.5 * rng.gen::<f64>(),
+                        ),
+                    ));
+                } else {
+                    // glass
+                    world.push(Sphere::new(center, 0.2, Dielectric::new(1.5)));
+                }
+            }
+        }
+    }
+    world.push(Sphere::new(
+        Vector3::new(0.0, 1.0, 0.0),
+        1.0,
+        Dielectric::new(1.5),
+    ));
+    world.push(Sphere::new(
+        Vector3::new(-4.0, 1.0, 0.0),
+        1.0,
+        Lambertian::new(Vector3::new(0.4, 0.2, 0.1)),
+    ));
+    world.push(Sphere::new(
+        Vector3::new(4.0, 1.0, 0.0),
+        1.0,
+        Metal::new(Vector3::new(0.7, 0.6, 0.5), 0.0),
+    ));
+    world
+}
+
 fn ray_color(r: Ray, world: &HitableList, depth: usize) -> Vector3<f64> {
-    if depth <= 0 {
+    if depth == 0 {
         return Vector3::new(0.0, 0.0, 0.0);
     };
     if let Some(rec) = world.hit(&r, 0.001, f64::MAX) {
@@ -28,43 +94,31 @@ fn ray_color(r: Ray, world: &HitableList, depth: usize) -> Vector3<f64> {
     } else {
         let unit_direction: Vector3<f64> = r.direction().normalize();
         let t = 0.5 * (unit_direction[1] + 1.0);
-        return (1.0 - t) * Vector3::new(1.0, 1.0, 1.0) + t * Vector3::new(0.5, 0.7, 1.0);
+        (1.0 - t) * Vector3::new(1.0, 1.0, 1.0) + t * Vector3::new(0.5, 0.7, 1.0)
     }
 }
 
 fn main() {
     // 图像参数
-    const IMAGE_WIDTH: usize = 400;
+    const IMAGE_WIDTH: usize = 1200;
     const IMAGE_HEIGHT: usize = ((IMAGE_WIDTH as f64) / ASPECT_RATIO) as usize;
-    const ASPECT_RATIO: f64 = 16.0 / 9.0;
-    const SAMPLES_PER_PIXEL: usize = 50;
-    const MAX_DEPTH: usize = 20;
+    const ASPECT_RATIO: f64 = 3.0 / 2.0;
+    const SAMPLES_PER_PIXEL: usize = 500;
+    const MAX_DEPTH: usize = 50;
 
     //物体
-    let mut world = HitableList::new();
-
-    let material_ground = Lambertian::new(Vector3::new(0.8, 0.8, 0.0));
-    let material_center = Lambertian::new(Vector3::new(0.1, 0.2, 0.5));
-    let material_left = Dielectric::new(1.5);
-    let material_right = Metal::new(Vector3::new(0.8, 0.6, 0.2), 0.0);
-
-    let sphere_ground = Sphere::new(Vector3::new(0.0, -100.5, -1.0), 100.0, material_ground);
-    let sphere_center = Sphere::new(Vector3::new(0.0, 0.0, -1.0), 0.5, material_center);
-    let sphere_left = Sphere::new(Vector3::new(-1.0, 0.0, -1.0), 0.5, material_left);
-
-    let sphere_right = Sphere::new(Vector3::new(1.0, 0.0, -1.0), 0.5, material_right);
-
-    world.push(sphere_ground);
-    world.push(sphere_center);
-    world.push(sphere_left);
-    world.push(sphere_right);
-
-    let material_left = Dielectric::new(1.5);
-    let sphere_left = Sphere::new(Vector3::new(-1.0, 0.0, -1.0), -0.4, material_left);
-    world.push(sphere_left);
+    let world = random_scene();
 
     //相机
-    let camera = Camera::new();
+    let camera = Camera::new(
+        Vector3::new(13.0, 2.0, 3.0),
+        Vector3::new(0.0, 0.0, 0.0),
+        Vector3::new(0.0, 1.0, 0.0),
+        10.0,
+        ASPECT_RATIO,
+        0.1,
+        10.0,
+    );
 
     // 计算像素颜色
     let image: Vec<u8> = (0..IMAGE_HEIGHT)
@@ -96,7 +150,7 @@ fn main() {
     //打印
     println!("P3");
     println!("{} {}", IMAGE_WIDTH, IMAGE_HEIGHT);
-    println!("{}", "255");
+    println!("255");
 
     for p in image.chunks(3) {
         println!("{} {} {}", p[0], p[1], p[2]);

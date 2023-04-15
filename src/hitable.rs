@@ -10,7 +10,6 @@ pub struct HitRecord {
     point: Vector3<f64>,  //交点
     normal: Vector3<f64>, //交点法线
     t: f64,
-    front_face: bool,
     material: Arc<dyn Material>,
 }
 
@@ -19,15 +18,13 @@ impl HitRecord {
         point: Vector3<f64>,
         normal: Vector3<f64>,
         t: f64,
-        front_face: bool,
         material: Arc<dyn Material>,
     ) -> HitRecord {
         HitRecord {
-            point: point,
-            normal: normal,
-            t: t,
-            front_face: front_face,
-            material: material,
+            point,
+            normal,
+            t,
+            material,
         }
     }
     pub fn normal(&self) -> Vector3<f64> {
@@ -35,9 +32,6 @@ impl HitRecord {
     }
     pub fn point(&self) -> Vector3<f64> {
         self.point
-    }
-    pub fn t(&self) -> f64 {
-        self.t
     }
     pub fn material(&self) -> Arc<dyn Material> {
         self.material.clone()
@@ -65,9 +59,9 @@ impl Hitable for HitableList {
         let mut closest_so_far = t_max;
         let mut hit_anything = None;
         for hitable in &self.0 {
-            if let Some(HitRecord) = hitable.hit(r, t_min, closest_so_far) {
-                closest_so_far = HitRecord.t;
-                hit_anything = Some(HitRecord);
+            if let Some(hit_record) = hitable.hit(r, t_min, closest_so_far) {
+                closest_so_far = hit_record.t;
+                hit_anything = Some(hit_record);
             }
         }
         hit_anything
