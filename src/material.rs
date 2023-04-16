@@ -62,12 +62,12 @@ impl Lambertian {
 impl Material for Lambertian {
     fn scatter(
         &self,
-        _r_in: &Ray,
+        r_in: &Ray,
         hit_record: &HitRecord,
         //attenuation: Vector3<f64>,
     ) -> Option<(Ray, Vector3<f64>)> {
         let scatter_direction = hit_record.normal() + random_in_unit_sphere();
-        let sactter = Ray::new(hit_record.point(), scatter_direction);
+        let sactter = Ray::new(hit_record.point(), scatter_direction, r_in.time());
         Some((sactter, self.albedo))
     }
 }
@@ -99,7 +99,7 @@ impl Material for Metal {
             + self.fuzz * random_in_unit_sphere();
         if reflected_direction.dot(&hit_record.normal()) > 0.0 {
             //加了模糊反射后在表面外
-            let sactter: Ray = Ray::new(hit_record.point(), reflected_direction);
+            let sactter: Ray = Ray::new(hit_record.point(), reflected_direction, r_in.time());
             Some((sactter, self.albedo))
         } else {
             None
@@ -143,7 +143,10 @@ impl Material for Dielectric {
             reflectance_in + (1.0 - reflectance_in) * (1.0 - cos_theta).powi(5);
 
             if rand::thread_rng().gen::<f64>() > reflectance_out {
-                return Some((Ray::new(hit_record.point(), refracted), attenuation));
+                return Some((
+                    Ray::new(hit_record.point(), refracted, r_in.time()),
+                    attenuation,
+                ));
             }
         }
 
@@ -151,6 +154,7 @@ impl Material for Dielectric {
         let scattered = Ray::new(
             hit_record.point(),
             reflect(&r_in.direction().normalize(), &hit_record.normal()),
+            r_in.time(),
         );
 
         Some((scattered, attenuation))

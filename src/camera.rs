@@ -11,6 +11,8 @@ pub struct Camera {
     u: Vector3<f64>,
     v: Vector3<f64>,
     lens_radius: f64,
+    time0: f64,
+    time1: f64,
 }
 impl Camera {
     pub fn new(
@@ -21,6 +23,8 @@ impl Camera {
         aspect_ratio: f64, // 长比高
         aperture: f64,     // 光圈
         focus_dist: f64,   // 对焦距离
+        time0: f64,
+        time1: f64,
     ) -> Camera {
         let theta = vfov.to_radians();
         let h = (theta / 2.0).tan();
@@ -45,6 +49,8 @@ impl Camera {
             u,
             v,
             lens_radius,
+            time0,
+            time1,
         }
     }
 
@@ -53,7 +59,11 @@ impl Camera {
         let rd = self.lens_radius * random_in_unit_dsk();
         let origin = self.origin + self.u * rd[0] + self.v * rd[1];
         let direction = self.lower_left_corner + s * self.horizontal + t * self.vertical - origin;
-        Ray::new(origin, direction)
+        Ray::new(
+            origin,
+            direction,
+            rand::thread_rng().gen_range(self.time0..self.time1),
+        )
     }
 }
 

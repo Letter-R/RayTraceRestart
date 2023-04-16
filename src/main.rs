@@ -12,7 +12,7 @@ use nalgebra as na;
 use rand::Rng;
 use ray::Ray;
 use rayon::prelude::*;
-use sphere::Sphere;
+use sphere::{MovingSphere, Sphere};
 
 fn random_scene() -> HitableList {
     let mut rng = rand::thread_rng();
@@ -34,8 +34,11 @@ fn random_scene() -> HitableList {
             if (center - origin).magnitude() > 0.9 {
                 if choose_material < 0.8 {
                     // diffuse
-                    world.push(Sphere::new(
+                    world.push(MovingSphere::new(
                         center,
+                        center + Vector3::new(0.0, rng.gen_range(0.0..0.5), 0.0),
+                        0.0,
+                        1.0,
                         0.2,
                         Lambertian::new(Vector3::new(
                             rng.gen::<f64>() * rng.gen::<f64>(),
@@ -118,6 +121,8 @@ fn main() {
         ASPECT_RATIO,
         0.1,
         10.0,
+        0.0,
+        1.0,
     );
 
     // 计算像素颜色
