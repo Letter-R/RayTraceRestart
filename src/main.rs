@@ -1,28 +1,39 @@
+mod aabb;
+mod bvh;
 mod camera;
 mod hitable;
 mod material;
 mod ray;
 mod sphere;
+mod texture;
 
-use crate::material::{Dielectric, Lambertian, Metal};
+use bvh::BVH;
 use camera::Camera;
 use hitable::{Hitable, HitableList};
+use material::{Dielectric, Lambertian, Metal};
 use na::Vector3;
 use nalgebra as na;
 use rand::Rng;
 use ray::Ray;
 use rayon::prelude::*;
 use sphere::{MovingSphere, Sphere};
+use texture::{CheckerTexture, SolidColor};
 
-fn random_scene() -> HitableList {
+// 返回BVH树的根节点，Box<BVH>
+fn random_scene() -> Box<dyn Hitable> {
     let mut rng = rand::thread_rng();
     let origin = Vector3::new(4.0, 0.2, 0.0);
-    let mut world = HitableList::new();
-    world.push(Sphere::new(
+    let mut world: Vec<Box<dyn Hitable>> = Vec::new();
+    let checker = CheckerTexture::new(
+        SolidColor::new(Vector3::new(0.2, 0.3, 0.1)),
+        SolidColor::new(Vector3::new(0.9, 0.9, 0.9)),
+    );
+    world.push(Box::new(Sphere::new(
         Vector3::new(0.0, -1000.0, 0.0),
         1000.0,
-        Lambertian::new(Vector3::new(0.5, 0.5, 0.5)),
-    ));
+        Lambertian::new(checker),
+    )));
+
     for a in -11..11 {
         for b in -11..11 {
             let choose_material = rng.gen::<f64>();
@@ -34,21 +45,21 @@ fn random_scene() -> HitableList {
             if (center - origin).magnitude() > 0.9 {
                 if choose_material < 0.8 {
                     // diffuse
-                    world.push(MovingSphere::new(
+                    world.push(Box::new(MovingSphere::new(
                         center,
                         center + Vector3::new(0.0, rng.gen_range(0.0..0.5), 0.0),
                         0.0,
                         1.0,
                         0.2,
-                        Lambertian::new(Vector3::new(
+                        Lambertian::new(SolidColor::new(Vector3::new(
                             rng.gen::<f64>() * rng.gen::<f64>(),
                             rng.gen::<f64>() * rng.gen::<f64>(),
                             rng.gen::<f64>() * rng.gen::<f64>(),
-                        )),
-                    ));
+                        ))),
+                    )));
                 } else if choose_material < 0.95 {
                     // metal
-                    world.push(Sphere::new(
+                    world.push(Box::new(Sphere::new(
                         center,
                         0.2,
                         Metal::new(
@@ -59,33 +70,56 @@ fn random_scene() -> HitableList {
                             ),
                             0.5 * rng.gen::<f64>(),
                         ),
-                    ));
+                    )));
                 } else {
                     // glass
-                    world.push(Sphere::new(center, 0.2, Dielectric::new(1.5)));
+                    world.push(Box::new(Sphere::new(center, 0.2, Dielectric::new(1.5))));
                 }
             }
         }
     }
-    world.push(Sphere::new(
+    world.push(Box::new(Sphere::new(
         Vector3::new(0.0, 1.0, 0.0),
         1.0,
         Dielectric::new(1.5),
-    ));
-    world.push(Sphere::new(
+    )));
+    world.push(Box::new(Sphere::new(
         Vector3::new(-4.0, 1.0, 0.0),
         1.0,
-        Lambertian::new(Vector3::new(0.4, 0.2, 0.1)),
-    ));
-    world.push(Sphere::new(
+        Lambertian::new(SolidColor::new(Vector3::new(0.4, 0.2, 0.1))),
+    )));
+    world.push(Box::new(Sphere::new(
         Vector3::new(4.0, 1.0, 0.0),
         1.0,
         Metal::new(Vector3::new(0.7, 0.6, 0.5), 0.0),
-    ));
-    world
+    )));
+    Box::new(BVH::new(world, 0.0, 1.0))
 }
 
-fn ray_color(r: Ray, world: &HitableList, depth: usize) -> Vector3<f64> {
+fn two_spheres() -> Box<dyn Hitable> {
+    let checker1 = CheckerTexture::new(
+        SolidColor::new(Vector3::new(0.2, 0.3, 0.1)),
+        SolidColor::new(Vector3::new(0.9, 0.9, 0.9)),
+    );
+    let checker2 = CheckerTexture::new(
+        SolidColor::new(Vector3::new(0.2, 0.3, 0.1)),
+        SolidColor::new(Vector3::new(0.9, 0.9, 0.9)),
+    );
+    let mut world = HitableList::new();
+    world.push(Sphere::new(
+        Vector3::new(0.0, -10.0, 0.0),
+        10.0,
+        Lambertian::new(checker1),
+    ));
+    world.push(Sphere::new(
+        Vector3::new(0.0, 10.0, 0.0),
+        10.0,
+        Lambertian::new(checker2),
+    ));
+    Box::new(world)
+}
+
+fn ray_color(r: Ray, world: &Box<dyn Hitable>, depth: usize) -> Vector3<f64> {
     if depth == 0 {
         return Vector3::new(0.0, 0.0, 0.0);
     };
@@ -103,21 +137,21 @@ fn ray_color(r: Ray, world: &HitableList, depth: usize) -> Vector3<f64> {
 
 fn main() {
     // 图像参数
-    const IMAGE_WIDTH: usize = 500;
+    const IMAGE_WIDTH: usize = 600;
     const IMAGE_HEIGHT: usize = ((IMAGE_WIDTH as f64) / ASPECT_RATIO) as usize;
     const ASPECT_RATIO: f64 = 3.0 / 2.0;
-    const SAMPLES_PER_PIXEL: usize = 50;
+    const SAMPLES_PER_PIXEL: usize = 20;
     const MAX_DEPTH: usize = 5;
 
     //物体
-    let world = random_scene();
+    let world = two_spheres();
 
     //相机
     let camera = Camera::new(
         Vector3::new(13.0, 2.0, 3.0),
         Vector3::new(0.0, 0.0, 0.0),
         Vector3::new(0.0, 1.0, 0.0),
-        20.0,
+        40.0,
         ASPECT_RATIO,
         0.1,
         10.0,

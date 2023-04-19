@@ -1,3 +1,5 @@
+use crate::texture::Texture;
+
 use super::hitable::HitRecord;
 use super::ray::Ray;
 use nalgebra::Vector3;
@@ -49,12 +51,14 @@ pub trait Material: Sync + Send {
 /// Lambertian材质
 /// albedo：衰减率
 pub struct Lambertian {
-    albedo: Vector3<f64>,
+    albedo: Box<dyn Texture>,
 }
 
 impl Lambertian {
-    pub fn new(albedo: Vector3<f64>) -> Lambertian {
-        Lambertian { albedo }
+    pub fn new(albedo: impl Texture + 'static) -> Lambertian {
+        Lambertian {
+            albedo: Box::new(albedo),
+        }
     }
 }
 
@@ -68,7 +72,10 @@ impl Material for Lambertian {
     ) -> Option<(Ray, Vector3<f64>)> {
         let scatter_direction = hit_record.normal() + random_in_unit_sphere();
         let sactter = Ray::new(hit_record.point(), scatter_direction, r_in.time());
-        Some((sactter, self.albedo))
+        let attenuation = self
+            .albedo
+            .value(hit_record.u(), hit_record.v(), hit_record.point());
+        Some((sactter, attenuation))
     }
 }
 

@@ -1,6 +1,9 @@
+use std::f64::consts::PI;
 use std::sync::Arc;
 
-use crate::material::Material;
+use crate::aabb::{surrounding_box, AABB};
+
+use super::material::Material;
 
 use super::hitable::{HitRecord, Hitable};
 use super::ray::Ray;
@@ -19,6 +22,21 @@ impl Sphere {
             material: Arc::new(material),
         }
     }
+
+    /// 输入单位圆表面的点
+    /// 计算球坐标的方位角phi和极角theta
+    /// 输出归一化映射u,v
+    pub fn get_sphere_uv(p: &Vector3<f64>) -> (f64, f64) {
+        let theta = f64::acos(-p.y);
+        let sin_theta = f64::sin(theta);
+        let sin_phi = p.z / sin_theta;
+        let cos_phi = p.x / (-sin_theta);
+        let mut phi = sin_phi.atan2(cos_phi);
+        if phi < 0.0 {
+            phi = -phi
+        }
+        (phi / (2.0 * PI), theta / PI)
+    }
 }
 
 impl Hitable for Sphere {
@@ -34,16 +52,23 @@ impl Hitable for Sphere {
             if t < t_max && t > t_min {
                 let p = r.at(t);
                 let normal = (p - self.center) / self.radius;
-                return Some(HitRecord::new(p, normal, t, self.material.clone()));
+                let (u, v) = Sphere::get_sphere_uv(&normal);
+                return Some(HitRecord::new(p, normal, t, self.material.clone(), u, v));
             };
             let t = (-b + sqrt_discriminant) / a;
             if t < t_max && t > t_min {
                 let p = r.at(t);
                 let normal = (p - self.center) / self.radius;
-                return Some(HitRecord::new(p, normal, t, self.material.clone()));
+                let (u, v) = Sphere::get_sphere_uv(&normal);
+                return Some(HitRecord::new(p, normal, t, self.material.clone(), u, v));
             }
         }
         None
+    }
+    /// 返回sphere的包围盒
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<crate::aabb::AABB> {
+        let offset = Vector3::new(self.radius, self.radius, self.radius);
+        Some(AABB::new(self.center - offset, self.center + offset))
     }
 }
 
@@ -80,6 +105,20 @@ impl MovingSphere {
                 .max(0.0)
                 * (self.center1 - self.center0)
     }
+    /// 输入单位圆表面的点
+    /// 计算球坐标的方位角phi和极角theta
+    /// 输出归一化映射u,v
+    pub fn get_sphere_uv(p: &Vector3<f64>) -> (f64, f64) {
+        let theta = f64::acos(-p.y);
+        let sin_theta = f64::sin(theta);
+        let sin_phi = p.z / sin_theta;
+        let cos_phi = p.x / (-sin_theta);
+        let mut phi = sin_phi.atan2(cos_phi);
+        if phi < 0.0 {
+            phi = -phi
+        }
+        (phi / (2.0 * PI), theta / PI)
+    }
 }
 
 impl Hitable for MovingSphere {
@@ -95,15 +134,24 @@ impl Hitable for MovingSphere {
             if t < t_max && t > t_min {
                 let p = r.at(t);
                 let normal = (p - self.center(r.time())) / self.radius;
-                return Some(HitRecord::new(p, normal, t, self.material.clone()));
+                let (u, v) = Sphere::get_sphere_uv(&normal);
+                return Some(HitRecord::new(p, normal, t, self.material.clone(), u, v));
             };
             let t = (-b + sqrt_discriminant) / a;
             if t < t_max && t > t_min {
                 let p = r.at(t);
                 let normal = (p - self.center(r.time())) / self.radius;
-                return Some(HitRecord::new(p, normal, t, self.material.clone()));
+                let (u, v) = Sphere::get_sphere_uv(&normal);
+                return Some(HitRecord::new(p, normal, t, self.material.clone(), u, v));
             }
         }
         None
+    }
+    /// 返回moving sphere的包围盒
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
+        let offset = Vector3::new(self.radius, self.radius, self.radius);
+        let box0 = AABB::new(self.center(time0) - offset, self.center(time0) + offset);
+        let box1 = AABB::new(self.center(time1) - offset, self.center(time1) + offset);
+        Some(surrounding_box(&box0, &box1))
     }
 }

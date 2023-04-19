@@ -1,7 +1,7 @@
 use nalgebra::Vector3;
 use rand::Rng;
 
-use crate::ray::Ray;
+use super::ray::Ray;
 
 pub struct Camera {
     origin: Vector3<f64>,

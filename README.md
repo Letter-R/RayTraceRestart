@@ -1,3 +1,11 @@
 # RayTraceRestart
 
-完成了oneweeked部分，最后的图像按照书上参数，在13700上跑了3.5小时未完成
+已完成oneweeked部分
+
+
+
+## 总体设计
+### trait Hitable
+
+
+### trait Texture
