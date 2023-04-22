@@ -1,15 +1,8 @@
-use std::cmp::{min, Ordering};
+use std::cmp::Ordering;
 
-use crate::{
-    aabb::surrounding_box,
-    hitable::{HitRecord, HitableList},
-    ray::Ray,
-};
+use crate::{aabb::surrounding_box, hitable::HitRecord, ray::Ray};
 
-use super::{
-    aabb::AABB,
-    hitable::{self, Hitable},
-};
+use super::{aabb::AABB, hitable::Hitable};
 
 /// 枚举：节点的内容
 /// Branch：分叉节点，左右子树信息

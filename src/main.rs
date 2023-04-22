@@ -3,6 +3,7 @@ mod bvh;
 mod camera;
 mod hitable;
 mod material;
+mod perlin;
 mod ray;
 mod sphere;
 mod texture;
@@ -17,9 +18,10 @@ use rand::Rng;
 use ray::Ray;
 use rayon::prelude::*;
 use sphere::{MovingSphere, Sphere};
-use texture::{CheckerTexture, SolidColor};
+use texture::{CheckerTexture, NoiseTexture, SolidColor};
 
 // 返回BVH树的根节点，Box<BVH>
+#[allow(dead_code)]
 fn random_scene() -> Box<dyn Hitable> {
     let mut rng = rand::thread_rng();
     let origin = Vector3::new(4.0, 0.2, 0.0);
@@ -96,30 +98,29 @@ fn random_scene() -> Box<dyn Hitable> {
     Box::new(BVH::new(world, 0.0, 1.0))
 }
 
-fn two_spheres() -> Box<dyn Hitable> {
-    let checker1 = CheckerTexture::new(
-        SolidColor::new(Vector3::new(0.2, 0.3, 0.1)),
-        SolidColor::new(Vector3::new(0.9, 0.9, 0.9)),
-    );
-    let checker2 = CheckerTexture::new(
-        SolidColor::new(Vector3::new(0.2, 0.3, 0.1)),
-        SolidColor::new(Vector3::new(0.9, 0.9, 0.9)),
-    );
+fn two_spheres() -> impl Hitable {
+    // let texture1 = CheckerTexture::new(
+    //   SolidColor::new(Vector3::new(0.2, 0.3, 0.1)),
+    //   SolidColor::new(Vector3::new(0.9, 0.9, 0.9)),
+    // );
+    let texture1 = NoiseTexture::new(4.0);
+    let texture2 = NoiseTexture::new(4.0);
+
     let mut world = HitableList::new();
     world.push(Sphere::new(
-        Vector3::new(0.0, -10.0, 0.0),
-        10.0,
-        Lambertian::new(checker1),
+        Vector3::new(0.0, -1000.0, 0.0),
+        1000.0,
+        Lambertian::new(texture1),
     ));
     world.push(Sphere::new(
-        Vector3::new(0.0, 10.0, 0.0),
-        10.0,
-        Lambertian::new(checker2),
+        Vector3::new(0.0, 2.0, 0.0),
+        2.0,
+        Lambertian::new(texture2),
     ));
-    Box::new(world)
+    world
 }
 
-fn ray_color(r: Ray, world: &Box<dyn Hitable>, depth: usize) -> Vector3<f64> {
+fn ray_color(r: Ray, world: &dyn Hitable, depth: usize) -> Vector3<f64> {
     if depth == 0 {
         return Vector3::new(0.0, 0.0, 0.0);
     };
@@ -151,7 +152,7 @@ fn main() {
         Vector3::new(13.0, 2.0, 3.0),
         Vector3::new(0.0, 0.0, 0.0),
         Vector3::new(0.0, 1.0, 0.0),
-        40.0,
+        20.0,
         ASPECT_RATIO,
         0.1,
         10.0,

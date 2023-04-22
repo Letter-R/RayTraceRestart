@@ -2,7 +2,7 @@ use crate::aabb::{surrounding_box, AABB};
 
 use super::material::Material;
 use nalgebra::Vector3;
-use rayon::prelude::IntoParallelIterator;
+
 use std::sync::Arc;
 
 use super::ray::Ray;

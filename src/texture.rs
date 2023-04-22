@@ -1,5 +1,7 @@
 use nalgebra::Vector3;
 
+use crate::perlin::Perlin;
+
 pub trait Texture: Send + Sync {
     fn value(&self, u: f64, v: f64, p: Vector3<f64>) -> Vector3<f64>;
 }
@@ -15,7 +17,7 @@ impl SolidColor {
 }
 
 impl Texture for SolidColor {
-    fn value(&self, u: f64, v: f64, p: Vector3<f64>) -> Vector3<f64> {
+    fn value(&self, _u: f64, _v: f64, _p: Vector3<f64>) -> Vector3<f64> {
         self.color_value
     }
 }
@@ -42,5 +44,26 @@ impl Texture for CheckerTexture {
         } else {
             self.even.value(u, v, p)
         }
+    }
+}
+
+pub struct NoiseTexture {
+    noise: Perlin,
+    scale: f64,
+}
+
+impl NoiseTexture {
+    /// Creates a new [`NoiseTexture`].
+    pub fn new(sc: f64) -> Self {
+        NoiseTexture {
+            noise: Perlin::new(),
+            scale: sc,
+        }
+    }
+}
+
+impl Texture for NoiseTexture {
+    fn value(&self, _u: f64, _v: f64, p: Vector3<f64>) -> Vector3<f64> {
+        Vector3::new(1.0, 1.0, 1.0) * 0.5 * (self.noise.noise(&(p * self.scale)) + 1.0)
     }
 }

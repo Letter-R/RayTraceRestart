@@ -66,7 +66,7 @@ impl Hitable for Sphere {
         None
     }
     /// 返回sphere的包围盒
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<crate::aabb::AABB> {
+    fn bounding_box(&self, _time0: f64, _time11: f64) -> Option<crate::aabb::AABB> {
         let offset = Vector3::new(self.radius, self.radius, self.radius);
         Some(AABB::new(self.center - offset, self.center + offset))
     }

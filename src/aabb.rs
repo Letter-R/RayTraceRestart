@@ -1,5 +1,3 @@
-use std::cmp::min;
-
 use nalgebra::Vector3;
 
 use super::ray::Ray;
